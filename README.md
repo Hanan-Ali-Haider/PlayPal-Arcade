@@ -1,6 +1,6 @@
 # PlayPal-Arcade 🎮
 
-**Hanan & Rehan's Arcade** - A personal 2-player neon-glass arcade hub featuring Chess, Carrom, Headball, Top-Down Football, Air Hockey, and a Turn-Based RPG Arena.
+- A personal 2-player neon-glass arcade hub featuring Chess, Carrom, Headball, Top-Down Football, Air Hockey, and a Turn-Based RPG Arena.
 
 ![PlayPal Arcade](https://img.shields.io/badge/PlayPal-Arcade-neon?style=for-the-badge&logo=gamepad)
 ![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)
