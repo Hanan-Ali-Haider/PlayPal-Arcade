@@ -136,4 +136,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-*Built with ❤️ for Hanan & Rehan's gaming sessions*
+*Built with ❤️ for your gaming sessions*
