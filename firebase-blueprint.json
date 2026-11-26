@@ -1,0 +1,172 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private arcade account settings for an authenticated user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "username": { "type": "string", "minLength": 3, "maxLength": 24, "pattern": "^[a-z0-9_]{3,24}$" },
+        "accentColor": { "type": "string", "maxLength": 16 },
+        "emblem": { "type": "string", "enum": ["arcade", "rocket", "crown", "shield", "star", "swords"] },
+        "photoUrl": { "type": "string", "maxLength": 65000 },
+        "winTaunt": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "username", "accentColor", "emblem", "winTaunt", "createdAt", "updatedAt"]
+    },
+    "PlayerHandle": {
+      "title": "PlayerHandle",
+      "description": "Non-PII username directory lookup enabling friend requests without exposing private user docs.",
+      "type": "object",
+      "properties": {
+        "handle": { "type": "string", "minLength": 3, "maxLength": 24, "pattern": "^[a-z0-9_]{3,24}$" },
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "accentColor": { "type": "string", "maxLength": 16 },
+        "emblem": { "type": "string", "enum": ["arcade", "rocket", "crown", "shield", "star", "swords"] },
+        "photoUrl": { "type": "string", "maxLength": 65000 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["handle", "uid", "displayName", "accentColor", "emblem", "updatedAt"]
+    },
+    "FriendRelation": {
+      "title": "FriendRelation",
+      "description": "Friend request, accepted friendship, and room invite link between two users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "fromUid": { "type": "string", "maxLength": 128 },
+        "fromUsername": { "type": "string", "minLength": 3, "maxLength": 24, "pattern": "^[a-z0-9_]{3,24}$" },
+        "fromName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "fromColor": { "type": "string", "maxLength": 16 },
+        "fromEmblem": { "type": "string", "enum": ["arcade", "rocket", "crown", "shield", "star", "swords"] },
+        "fromPhoto": { "type": "string", "maxLength": 65000 },
+        "toUid": { "type": "string", "maxLength": 128 },
+        "toUsername": { "type": "string", "minLength": 3, "maxLength": 24, "pattern": "^[a-z0-9_]{3,24}$" },
+        "toName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "toColor": { "type": "string", "maxLength": 16 },
+        "toEmblem": { "type": "string", "enum": ["arcade", "rocket", "crown", "shield", "star", "swords"] },
+        "toPhoto": { "type": "string", "maxLength": 65000 },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "inviteRoomCode": { "type": "string", "maxLength": 6 },
+        "invitedByUid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "fromUid", "fromUsername", "fromName", "fromColor", "fromEmblem",
+        "toUid", "toUsername", "toName", "toColor", "toEmblem",
+        "status", "inviteRoomCode", "invitedByUid", "createdAt", "updatedAt"
+      ]
+    },
+    "ArcadeRoom": {
+      "title": "ArcadeRoom",
+      "description": "Online 2-player game room where players claim Side 1 or Side 2, launch games, and track room wins.",
+      "type": "object",
+      "properties": {
+        "roomCode": { "type": "string", "minLength": 6, "maxLength": 6, "pattern": "^[A-Z0-9]{6}$" },
+        "hostUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "guestUid": { "type": "string", "maxLength": 128 },
+        "p1Uid": { "type": "string", "maxLength": 128 },
+        "p1Name": { "type": "string", "maxLength": 60 },
+        "p1Photo": { "type": "string", "maxLength": 65000 },
+        "p2Uid": { "type": "string", "maxLength": 128 },
+        "p2Name": { "type": "string", "maxLength": 60 },
+        "p2Photo": { "type": "string", "maxLength": 65000 },
+        "activeGame": { "type": "string", "enum": ["lobby", "chess", "carrom", "headball", "football", "racing", "airhockey"] },
+        "matchSeed": { "type": "number" },
+        "p1Wins": { "type": "number" },
+        "p2Wins": { "type": "number" },
+        "draws": { "type": "number" },
+        "status": { "type": "string", "enum": ["open", "playing"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "roomCode", "hostUid", "guestUid", "p1Uid", "p1Name", "p2Uid", "p2Name",
+        "activeGame", "matchSeed", "p1Wins", "p2Wins", "draws", "status", "createdAt", "updatedAt"
+      ]
+    },
+    "RoomMessage": {
+      "title": "RoomMessage",
+      "description": "Real-time text or voice chat message sent inside an arcade room.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderUid": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "senderSide": { "type": "string", "enum": ["p1", "p2", "guest"] },
+        "msgType": { "type": "string", "enum": ["text", "voice"] },
+        "text": { "type": "string", "minLength": 1, "maxLength": 400 },
+        "audioData": { "type": "string", "maxLength": 180000 },
+        "audioDurationSec": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "senderUid", "senderName", "senderSide", "text", "createdAt"]
+    },
+    "RoomMatch": {
+      "title": "RoomMatch",
+      "description": "Completed match record logged inside a room.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "gameId": { "type": "string", "enum": ["chess", "carrom", "headball", "football", "racing", "airhockey"] },
+        "gameName": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "winner": { "type": "string", "enum": ["p1", "p2", "draw"] },
+        "scoreLabel": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "durationSeconds": { "type": "number" },
+        "recordedByUid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "gameId", "gameName", "winner", "scoreLabel", "summary", "durationSeconds", "recordedByUid", "createdAt"]
+    },
+    "RoomSyncState": {
+      "title": "RoomSyncState",
+      "description": "Real-time multiplayer game state and WebRTC signaling state inside a room.",
+      "type": "object",
+      "properties": {
+        "docId": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "gameId": { "type": "string", "maxLength": 32 },
+        "seq": { "type": "number" },
+        "updatedByUid": { "type": "string", "maxLength": 128 },
+        "payload": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["docId", "gameId", "seq", "updatedByUid", "payload", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated player private account settings and customizable username."
+    },
+    "/handles/{handle}": {
+      "schema": { "$ref": "#/entities/PlayerHandle" },
+      "description": "Public non-PII username directory for friend lookups."
+    },
+    "/friendRequests/{reqId}": {
+      "schema": { "$ref": "#/entities/FriendRelation" },
+      "description": "Friend requests, friendships, and direct room invites."
+    },
+    "/rooms/{roomCode}": {
+      "schema": { "$ref": "#/entities/ArcadeRoom" },
+      "description": "Online 2-player arcade room document."
+    },
+    "/rooms/{roomCode}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/RoomMessage" },
+      "description": "Real-time chat messages for room members."
+    },
+    "/rooms/{roomCode}/matches/{matchId}": {
+      "schema": { "$ref": "#/entities/RoomMatch" },
+      "description": "Completed match history inside the room."
+    },
+    "/rooms/{roomCode}/sync/{docId}": {
+      "schema": { "$ref": "#/entities/RoomSyncState" },
+      "description": "Authoritative turn/action game sync and WebRTC signaling documents."
+    }
+  }
+}

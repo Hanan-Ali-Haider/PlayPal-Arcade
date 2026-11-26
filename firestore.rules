@@ -1,0 +1,387 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidHandle(handle) {
+      return handle is string && handle.size() >= 3 && handle.size() <= 24 && handle.matches('^[a-z0-9_]{3,24}$');
+    }
+
+    function isValidRoomCode(code) {
+      return code is string && code.size() == 6 && code.matches('^[A-Z0-9]{6}$');
+    }
+
+    function isValidEmblem(emblem) {
+      return emblem in ['arcade', 'rocket', 'crown', 'shield', 'star', 'swords', 'bolt', 'flame'];
+    }
+
+    function isValidPhotoUrl(url) {
+      return url is string && url.size() <= 65000;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'accentColor', 'emblem', 'winTaunt', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'username', 'accentColor', 'emblem', 'photoUrl', 'winTaunt', 'defaultPersona', 'rpg', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60
+        && (!('username' in data) || isValidHandle(data.username))
+        && data.accentColor is string && data.accentColor.size() >= 4 && data.accentColor.size() <= 16
+        && isValidEmblem(data.emblem)
+        && (!('photoUrl' in data) || isValidPhotoUrl(data.photoUrl))
+        && data.winTaunt is string && data.winTaunt.size() >= 1 && data.winTaunt.size() <= 60
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPlayerHandle(data) {
+      return data.keys().hasAll(['handle', 'uid', 'displayName', 'accentColor', 'emblem', 'updatedAt'])
+        && data.keys().hasOnly(['handle', 'uid', 'displayName', 'accentColor', 'emblem', 'photoUrl', 'updatedAt'])
+        && isValidHandle(data.handle)
+        && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60
+        && data.accentColor is string && data.accentColor.size() >= 4 && data.accentColor.size() <= 16
+        && isValidEmblem(data.emblem)
+        && (!('photoUrl' in data) || isValidPhotoUrl(data.photoUrl))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFriendRelation(data) {
+      return data.keys().hasAll([
+          'id', 'fromUid', 'fromUsername', 'fromName', 'fromColor', 'fromEmblem',
+          'toUid', 'toUsername', 'toName', 'toColor', 'toEmblem',
+          'status', 'inviteRoomCode', 'invitedByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'fromUid', 'fromUsername', 'fromName', 'fromColor', 'fromEmblem', 'fromPhoto',
+          'toUid', 'toUsername', 'toName', 'toColor', 'toEmblem', 'toPhoto',
+          'status', 'inviteRoomCode', 'invitedByUid', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.fromUid)
+        && isValidHandle(data.fromUsername)
+        && data.fromName is string && data.fromName.size() >= 1 && data.fromName.size() <= 60
+        && data.fromColor is string && data.fromColor.size() >= 4 && data.fromColor.size() <= 16
+        && isValidEmblem(data.fromEmblem)
+        && (!('fromPhoto' in data) || isValidPhotoUrl(data.fromPhoto))
+        && isValidId(data.toUid)
+        && isValidHandle(data.toUsername)
+        && data.toName is string && data.toName.size() >= 1 && data.toName.size() <= 60
+        && data.toColor is string && data.toColor.size() >= 4 && data.toColor.size() <= 16
+        && isValidEmblem(data.toEmblem)
+        && (!('toPhoto' in data) || isValidPhotoUrl(data.toPhoto))
+        && data.status in ['pending', 'accepted', 'declined']
+        && data.inviteRoomCode is string && (data.inviteRoomCode == '' || isValidRoomCode(data.inviteRoomCode))
+        && data.invitedByUid is string && data.invitedByUid.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidArcadeRoom(data) {
+      return data.keys().hasAll([
+          'roomCode', 'hostUid', 'guestUid', 'p1Uid', 'p1Name', 'p2Uid', 'p2Name',
+          'activeGame', 'matchSeed', 'p1Wins', 'p2Wins', 'draws', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'roomCode', 'hostUid', 'guestUid', 'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo',
+          'activeGame', 'matchSeed', 'p1Wins', 'p2Wins', 'draws', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidRoomCode(data.roomCode)
+        && isValidId(data.hostUid)
+        && data.guestUid is string && data.guestUid.size() <= 128
+        && data.p1Uid is string && data.p1Uid.size() <= 128
+        && data.p1Name is string && data.p1Name.size() <= 60
+        && (!('p1Photo' in data) || isValidPhotoUrl(data.p1Photo))
+        && data.p2Uid is string && data.p2Uid.size() <= 128
+        && data.p2Name is string && data.p2Name.size() <= 60
+        && (!('p2Photo' in data) || isValidPhotoUrl(data.p2Photo))
+        && data.activeGame in ['lobby', 'chess', 'carrom', 'headball', 'football', 'racing', 'airhockey']
+        && data.matchSeed is int && data.matchSeed >= 1
+        && data.p1Wins is int && data.p1Wins >= 0
+        && data.p2Wins is int && data.p2Wins >= 0
+        && data.draws is int && data.draws >= 0
+        && data.status in ['open', 'playing']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isRoomMemberData(roomData) {
+      return roomData.hostUid == request.auth.uid || roomData.guestUid == request.auth.uid;
+    }
+
+    function isRoomMember(roomCode) {
+      return isRoomMemberData(get(/databases/$(database)/documents/rooms/$(roomCode)).data);
+    }
+
+    function isValidRoomMessage(data) {
+      return data.keys().hasAll(['id', 'senderUid', 'senderName', 'senderSide', 'text', 'createdAt'])
+        && data.keys().hasOnly([
+          'id', 'senderUid', 'senderName', 'senderSide', 'msgType', 'text', 'audioData', 'audioDurationSec', 'createdAt'
+        ])
+        && isValidId(data.id)
+        && data.senderUid == request.auth.uid
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 60
+        && data.senderSide in ['p1', 'p2', 'guest']
+        && (!('msgType' in data) || data.msgType in ['text', 'voice'])
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 400
+        && (!('audioData' in data) || (
+          data.audioData is string
+          && data.audioData.size() >= 20
+          && data.audioData.size() <= 180000
+          && data.audioData.matches('^data:audio/.*')
+        ))
+        && (!('audioDurationSec' in data) || (
+          data.audioDurationSec is int
+          && data.audioDurationSec >= 1
+          && data.audioDurationSec <= 30
+        ))
+        && (!('msgType' in data) || data.msgType != 'voice' || ('audioData' in data && 'audioDurationSec' in data))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidRoomMatch(data) {
+      return data.keys().hasAll([
+          'id', 'gameId', 'gameName', 'winner', 'scoreLabel', 'summary', 'durationSeconds', 'recordedByUid', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'gameId', 'gameName', 'winner', 'scoreLabel', 'summary', 'durationSeconds', 'recordedByUid', 'createdAt'
+        ])
+        && isValidId(data.id)
+        && data.gameId in ['chess', 'carrom', 'headball', 'football', 'racing', 'airhockey']
+        && data.gameName is string && data.gameName.size() >= 1 && data.gameName.size() <= 40
+        && data.winner in ['p1', 'p2', 'draw']
+        && data.scoreLabel is string && data.scoreLabel.size() >= 1 && data.scoreLabel.size() <= 80
+        && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 200
+        && data.durationSeconds is int && data.durationSeconds >= 0
+        && data.recordedByUid == request.auth.uid
+        && data.createdAt is timestamp;
+    }
+
+    function isValidRoomSync(data) {
+      return data.keys().hasAll(['docId', 'gameId', 'seq', 'updatedByUid', 'payload', 'updatedAt'])
+        && data.keys().hasOnly(['docId', 'gameId', 'seq', 'updatedByUid', 'payload', 'updatedAt'])
+        && isValidId(data.docId)
+        && data.gameId is string && data.gameId.size() >= 1 && data.gameId.size() <= 32
+        && data.seq is int && data.seq >= 0
+        && data.updatedByUid == request.auth.uid
+        && data.payload is map
+        && data.updatedAt is timestamp;
+    }
+
+    // Connection check doc
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Private User Profiles (Owner-only PII & Account Settings)
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isVerifiedUser() && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().uid == userId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'username', 'accentColor', 'emblem', 'photoUrl', 'winTaunt', 'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    // Public non-PII Username Lookup Handles for Friend Requests (exact get only, no scraping list)
+    match /handles/{handle} {
+      allow get: if isVerifiedUser() && isValidHandle(handle);
+      allow list: if false;
+      allow create: if isVerifiedUser() && isValidHandle(handle)
+        && isValidPlayerHandle(incoming())
+        && incoming().handle == handle
+        && incoming().uid == request.auth.uid
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() && isValidHandle(handle)
+        && isValidPlayerHandle(incoming())
+        && existing().uid == request.auth.uid
+        && incoming().uid == existing().uid
+        && incoming().handle == existing().handle
+        && incoming().updatedAt == request.time;
+      allow delete: if isVerifiedUser() && isValidHandle(handle)
+        && existing().uid == request.auth.uid;
+    }
+
+    // Friend Requests & Accepted Friendships
+    match /friendRequests/{reqId} {
+      allow get: if isVerifiedUser() && isValidId(reqId)
+        && (existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+      allow list: if isVerifiedUser()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if isVerifiedUser() && isValidId(reqId)
+        && isValidFriendRelation(incoming())
+        && incoming().id == reqId
+        && incoming().fromUid == request.auth.uid
+        && incoming().toUid != request.auth.uid
+        && incoming().status == 'pending'
+        && incoming().inviteRoomCode == ''
+        && incoming().invitedByUid == ''
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/users/$(incoming().toUid));
+      allow update: if isVerifiedUser() && isValidId(reqId)
+        && isValidFriendRelation(incoming())
+        && incoming().id == existing().id
+        && incoming().fromUid == existing().fromUid
+        && incoming().toUid == existing().toUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Recipient accepts or declines a pending request
+          (
+            existing().toUid == request.auth.uid
+            && existing().status == 'pending'
+            && incoming().status in ['accepted', 'declined']
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'toName', 'toUsername', 'toColor', 'toEmblem', 'toPhoto', 'updatedAt'
+            ])
+          )
+          // Action 2: Either accepted friend sends or clears a room invite
+          || (
+            existing().status == 'accepted'
+            && (existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid)
+            && incoming().status == 'accepted'
+            && (incoming().invitedByUid == request.auth.uid || incoming().invitedByUid == '')
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'inviteRoomCode', 'invitedByUid', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(reqId)
+        && (existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+    }
+
+    // Online Arcade Rooms
+    match /rooms/{roomCode} {
+      allow get: if isVerifiedUser() && isValidRoomCode(roomCode);
+      allow list: if isVerifiedUser() && (
+        resource.data.hostUid == request.auth.uid || resource.data.guestUid == request.auth.uid
+      );
+      allow create: if isVerifiedUser() && isValidRoomCode(roomCode)
+        && isValidArcadeRoom(incoming())
+        && incoming().roomCode == roomCode
+        && incoming().hostUid == request.auth.uid
+        && incoming().guestUid == ''
+        && incoming().p1Wins == 0
+        && incoming().p2Wins == 0
+        && incoming().draws == 0
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() && isValidRoomCode(roomCode)
+        && isValidArcadeRoom(incoming())
+        && incoming().roomCode == existing().roomCode
+        && incoming().hostUid == existing().hostUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Guest joins an open room (also permits legacy hanan/rehan field cleanup)
+          (
+            existing().guestUid == ''
+            && request.auth.uid != existing().hostUid
+            && incoming().guestUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'guestUid', 'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo',
+              'p1Wins', 'p2Wins', 'draws', 'updatedAt',
+              'hananUid', 'hananName', 'rehanUid', 'rehanName', 'hananWins', 'rehanWins'
+            ])
+          )
+          // Action 2: Room member updates sides, active game, or room scoreboard (also permits legacy field cleanup)
+          || (
+            isRoomMemberData(existing())
+            && incoming().guestUid == existing().guestUid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo',
+              'activeGame', 'matchSeed', 'p1Wins', 'p2Wins', 'draws', 'status', 'updatedAt',
+              'hananUid', 'hananName', 'rehanUid', 'rehanName', 'hananWins', 'rehanWins'
+            ])
+          )
+          // Action 3: Guest leaves room
+          || (
+            existing().guestUid == request.auth.uid
+            && incoming().guestUid == ''
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'guestUid', 'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isVerifiedUser() && isValidRoomCode(roomCode) && existing().hostUid == request.auth.uid;
+
+      // Real-time Room Chat (text & voice messages)
+      match /messages/{messageId} {
+        allow get: if isVerifiedUser() && isValidRoomCode(roomCode) && isValidId(messageId) && isRoomMember(roomCode);
+        allow list: if isVerifiedUser() && isValidRoomCode(roomCode) && isRoomMember(roomCode);
+        allow create: if isVerifiedUser() && isValidRoomCode(roomCode) && isValidId(messageId)
+          && isValidRoomMessage(incoming())
+          && incoming().id == messageId
+          && incoming().createdAt == request.time
+          && isRoomMember(roomCode);
+        allow update, delete: if false;
+      }
+
+      // Room Match History
+      match /matches/{matchId} {
+        allow get: if isVerifiedUser() && isValidRoomCode(roomCode) && isValidId(matchId) && isRoomMember(roomCode);
+        allow list: if isVerifiedUser() && isValidRoomCode(roomCode) && isRoomMember(roomCode);
+        allow create: if isVerifiedUser() && isValidRoomCode(roomCode) && isValidId(matchId)
+          && isValidRoomMatch(incoming())
+          && incoming().id == matchId
+          && incoming().createdAt == request.time
+          && isRoomMember(roomCode);
+        allow update, delete: if false;
+      }
+
+      // Live Game State & WebRTC Signaling Sync
+      match /sync/{docId} {
+        allow get: if isVerifiedUser() && isValidRoomCode(roomCode) && isValidId(docId) && isRoomMember(roomCode);
+        allow list: if isVerifiedUser() && isValidRoomCode(roomCode) && isRoomMember(roomCode);
+        allow create, update: if isVerifiedUser() && isValidRoomCode(roomCode) && isValidId(docId)
+          && isValidRoomSync(incoming())
+          && incoming().docId == docId
+          && incoming().updatedAt == request.time
+          && isRoomMember(roomCode);
+        allow delete: if isVerifiedUser() && isValidRoomCode(roomCode) && isValidId(docId) && isRoomMember(roomCode);
+      }
+    }
+  }
+}
