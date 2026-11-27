@@ -24,6 +24,7 @@ import { RoomChat } from '../components/RoomChat';
 import { GAME_REGISTRY } from '../games/registry';
 import { useArcade } from '../state/arcadeStore';
 import { sound } from '../utils/sound';
+import { useDeviceMode } from '../utils/useDeviceMode';
 
 interface RoomLobbyViewProps {
   onOpenFriends?: () => void;
@@ -57,10 +58,12 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
     mySide,
   } = useArcade();
 
+  const device = useDeviceMode();
   const [joinCode, setJoinCode] = useState('');
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [inviteToast, setInviteToast] = useState<string | null>(null);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   // 1. Clean Direct 1v1 Arcade Sign-In Screen (Zero marketing clutter)
   if (!user) {
@@ -79,7 +82,7 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
                   PlayPal Arcade
                 </h1>
                 <p className="mt-1.5 max-w-xl text-sm font-medium text-black/75">
-                  Sign in with Google, pick your @username in Settings, add friends, and hop into a room to play 6 fast 1v1 games on phone or PC.
+                  Sign in with Google, pick your @username in Settings, add friends, and hop into a room to play 10 fast 1v1 games optimized for phone and PC.
                 </p>
               </div>
             </div>
@@ -110,7 +113,7 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
               Pick a Game &amp; Play
             </h2>
             <span className="rounded-lg border-2 border-black bg-white px-3 py-1 text-xs font-bold text-black">
-              6 Games · Mobile &amp; PC
+              10 Games · {device.isMobile ? 'Mobile Touch Mode' : 'PC Mode'}
             </span>
           </div>
 
@@ -614,30 +617,57 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
       </section>
 
       {/* Main Room Split: Game Launcher + Live Room Chat */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_350px] xl:items-start">
+      <div
+        className={`grid gap-6 ${
+          device.isMobile ? '' : 'xl:grid-cols-[minmax(0,1fr)_350px] xl:items-start'
+        }`}
+      >
         <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight text-black">
-              Choose a Game (6)
-            </h2>
-            <button
-              type="button"
-              onClick={handleRandomGame}
-              className="neo-btn inline-flex items-center gap-2 bg-[#ffe17c] px-4 py-2 text-xs font-bold text-black cursor-pointer"
-            >
-              <Shuffle className="h-3.5 w-3.5" />
-              Random Game
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <h2 className="font-display text-2xl font-extrabold tracking-tight text-black">
+                Choose a Game ({GAME_REGISTRY.length})
+              </h2>
+              <span className="rounded-md border-2 border-black bg-white px-2 py-0.5 text-[11px] font-bold text-black">
+                {device.isMobile ? 'Mobile View' : 'PC View'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {device.isMobile && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setMobileChatOpen(true);
+                  }}
+                  className="neo-btn inline-flex items-center gap-1.5 bg-[#b7c6c2] px-3.5 py-2 text-xs font-bold text-black cursor-pointer"
+                >
+                  Open Chat
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleRandomGame}
+                className="neo-btn inline-flex items-center gap-2 bg-[#ffe17c] px-4 py-2 text-xs font-bold text-black cursor-pointer"
+              >
+                <Shuffle className="h-3.5 w-3.5" />
+                Random Game
+              </button>
+            </div>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={`grid gap-4 sm:gap-5 ${
+              device.isCompact ? 'grid-cols-1' : 'sm:grid-cols-2 lg:grid-cols-3'
+            }`}
+          >
             {GAME_REGISTRY.map(({ meta }) => (
               <motion.article
                 key={meta.id}
-                whileHover={{ y: -3 }}
+                whileHover={device.isTouch ? undefined : { y: -3 }}
                 transition={{ duration: 0.14 }}
                 onClick={() => launchRoomGame(meta.id)}
-                className="group flex flex-col justify-between rounded-2xl border-2 border-black bg-white p-4 neo-shadow-sm cursor-pointer hover:bg-[#ffe17c]/30"
+                className="group flex flex-col justify-between rounded-2xl border-2 border-black bg-white p-4 neo-shadow-sm cursor-pointer hover:bg-[#ffe17c]/30 active:bg-[#ffe17c]/45"
               >
                 <div>
                   <GameArtwork gameId={meta.id} />
@@ -670,11 +700,42 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
           </div>
         </div>
 
-        {/* Live Room Chat with Goofy Emojis */}
-        <div className="h-[520px] xl:sticky xl:top-24">
-          <RoomChat compact />
-        </div>
+        {/* Live Room Chat (PC sticky sidebar) */}
+        {!device.isMobile && (
+          <div className="h-[540px] xl:sticky xl:top-24">
+            <RoomChat compact />
+          </div>
+        )}
       </div>
+
+      {/* Mobile Room Chat Sheet */}
+      {device.isMobile && mobileChatOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 p-2.5"
+          onClick={() => setMobileChatOpen(false)}
+        >
+          <div
+            className="flex h-[78vh] w-full flex-col overflow-hidden rounded-2xl border-2 border-black bg-white neo-shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b-2 border-black bg-[#ffe17c] px-4 py-2.5">
+              <span className="font-display text-sm font-extrabold text-black">
+                Room Chat ({room.roomCode})
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileChatOpen(false)}
+                className="neo-btn bg-white p-1 text-black cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <RoomChat compact />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

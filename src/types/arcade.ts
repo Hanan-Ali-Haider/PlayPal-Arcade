@@ -6,7 +6,13 @@ export type GameId =
   | 'headball'
   | 'football'
   | 'racing'
-  | 'airhockey';
+  | 'airhockey'
+  | 'tictactoe'
+  | 'pool'
+  | 'connect4'
+  | 'checkers';
+
+export type VoteChoice = '' | 'yes' | 'no';
 
 export type MatchWinner = PlayerId | 'draw';
 
@@ -69,6 +75,10 @@ export interface ArcadeRoomDoc {
   p2Wins: number;
   draws: number;
   status: 'open' | 'playing';
+  rematchP1: VoteChoice;
+  rematchP2: VoteChoice;
+  drawP1: VoteChoice;
+  drawP2: VoteChoice;
 }
 
 export interface RoomMessageDoc {

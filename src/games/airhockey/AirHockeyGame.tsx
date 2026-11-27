@@ -5,6 +5,7 @@ import { db, handleFirestoreError, OperationType } from '../../firebase/client';
 import { createRoomRtcChannel, RtcChannelHandle } from '../../firebase/rtcSync';
 import { GameComponentProps } from '../../types/arcade';
 import { sound } from '../../utils/sound';
+import { useDeviceMode } from '../../utils/useDeviceMode';
 
 const CW = 1000;
 const CH = 560;
@@ -56,6 +57,7 @@ export const AirHockeyGame: React.FC<GameComponentProps> = ({
   onMatchEnd,
   matchSeed,
 }) => {
+  const device = useDeviceMode();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
   const pointerRef = useRef<{ active: boolean; tx: number; ty: number }>({
@@ -764,8 +766,16 @@ export const AirHockeyGame: React.FC<GameComponentProps> = ({
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-black/70">
         <span>
-          Controls: <strong className="font-extrabold text-black">Drag with Mouse / Finger</strong> on your half ·{' '}
-          <strong className="font-extrabold text-black">WASD / Arrows</strong> supported
+          {device.isMobile || device.isTouch ? (
+            <>
+              Touch Controls: <strong className="font-extrabold text-black">Drag with your finger</strong> on your half of the rink
+            </>
+          ) : (
+            <>
+              Controls: <strong className="font-extrabold text-black">Drag with Mouse</strong> on your half ·{' '}
+              <strong className="font-extrabold text-black">WASD / Arrows</strong> supported
+            </>
+          )}
         </span>
         <span className="rounded-md border border-black bg-[#b7c6c2] px-2 py-0.5 font-bold text-black">
           {rtcOpen ? 'Connected' : 'Synced'}

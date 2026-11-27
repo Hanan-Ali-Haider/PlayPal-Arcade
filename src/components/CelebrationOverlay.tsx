@@ -1,14 +1,19 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Home, RotateCcw, Trophy } from 'lucide-react';
-import { MatchResultPayload, PlayerProfile } from '../types/arcade';
+import { Check, Home, RotateCcw, Trophy, X } from 'lucide-react';
+import { MatchResultPayload, PlayerId, PlayerProfile, VoteChoice } from '../types/arcade';
+import { sound } from '../utils/sound';
 import { PlayerAvatar } from './PlayerAvatar';
 
 interface CelebrationOverlayProps {
   result: MatchResultPayload;
   p1: PlayerProfile;
   p2: PlayerProfile;
-  onPlayAgain: () => void;
+  mySide: PlayerId | null;
+  opponentJoined: boolean;
+  rematchP1: VoteChoice;
+  rematchP2: VoteChoice;
+  onVoteRematch: (choice: 'yes' | 'no') => void;
   onBackToHub: () => void;
 }
 
@@ -16,7 +21,11 @@ export const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   result,
   p1,
   p2,
-  onPlayAgain,
+  mySide,
+  opponentJoined,
+  rematchP1,
+  rematchP2,
+  onVoteRematch,
   onBackToHub,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -26,9 +35,7 @@ export const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
 
   const isDraw = result.winner === 'draw';
 
-  const headline = winnerProfile
-    ? `${winnerProfile.name} Wins!`
-    : 'Match Drawn';
+  const headline = winnerProfile ? `${winnerProfile.name} Wins!` : 'Match Drawn';
 
   const bannerColor =
     winnerProfile?.id === 'p1'
@@ -36,6 +43,12 @@ export const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
       : winnerProfile?.id === 'p2'
         ? '#b7c6c2'
         : '#ffffff';
+
+  const iAmP2 = mySide === 'p2';
+  const myVoteYes = iAmP2 ? rematchP2 === 'yes' : rematchP1 === 'yes';
+  const otherVoteYes = iAmP2 ? rematchP1 === 'yes' : rematchP2 === 'yes';
+  const otherName = iAmP2 ? p1.name : p2.name;
+  const yesCount = (rematchP1 === 'yes' ? 1 : 0) + (rematchP2 === 'yes' ? 1 : 0);
 
   useEffect(() => {
     if (isDraw) return;
@@ -97,7 +110,7 @@ export const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   }, [isDraw]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65">
+    <div data-modal className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65">
       <canvas
         ref={canvasRef}
         className="pointer-events-none fixed inset-0 z-0"
@@ -107,7 +120,7 @@ export const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
         initial={{ opacity: 0, scale: 0.94, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-md rounded-2xl border-2 border-black bg-white p-7 text-center neo-shadow-xl"
+        className="relative z-10 w-full max-w-md rounded-2xl border-2 border-black bg-white p-6 text-center neo-shadow-xl sm:p-7"
       >
         <div
           className="mx-auto mb-4 inline-flex items-center justify-center gap-3 rounded-xl border-2 border-black px-4 py-2"
@@ -127,23 +140,94 @@ export const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
           {headline}
         </h2>
 
-        <p className="mt-2 font-mono-num text-xl font-bold text-black">
-          {result.scoreLabel}
-        </p>
+        <p className="mt-2 font-mono-num text-xl font-bold text-black">{result.scoreLabel}</p>
         <p className="mt-1.5 text-sm text-black/70">{result.summary}</p>
 
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+        {/* Mutual Rematch Voting Status */}
+        {opponentJoined && (myVoteYes || otherVoteYes) && (
+          <div className="mt-5 rounded-xl border-2 border-black bg-[#ffe17c] px-4 py-3 text-xs font-bold text-black">
+            {otherVoteYes && !myVoteYes ? (
+              <p className="font-extrabold">
+                {otherName} voted YES for a rematch! ({yesCount}/2)
+              </p>
+            ) : (
+              <p className="font-extrabold">
+                Rematch vote started ({yesCount}/2) — Waiting for {otherName} to vote Yes...
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          {!opponentJoined ? (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playPowerUp();
+                onVoteRematch('yes');
+              }}
+              className="neo-btn inline-flex items-center justify-center gap-2 bg-[#ffe17c] px-5 py-2.5 text-sm font-bold text-black whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Play Again
+            </button>
+          ) : otherVoteYes && !myVoteYes ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playPowerUp();
+                  onVoteRematch('yes');
+                }}
+                className="neo-btn inline-flex items-center justify-center gap-1.5 bg-[#ffe17c] px-4 py-2.5 text-sm font-extrabold text-black whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <Check className="h-4 w-4" />
+                Yes, Rematch!
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onVoteRematch('no');
+                }}
+                className="neo-btn inline-flex items-center justify-center gap-1.5 bg-white px-4 py-2.5 text-sm font-bold text-black whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+                No
+              </button>
+            </>
+          ) : myVoteYes ? (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onVoteRematch('no');
+              }}
+              className="neo-btn inline-flex items-center justify-center gap-2 bg-[#b7c6c2] px-5 py-2.5 text-sm font-bold text-black whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+              Cancel Rematch Vote
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onVoteRematch('yes');
+              }}
+              className="neo-btn inline-flex items-center justify-center gap-2 bg-[#ffe17c] px-5 py-2.5 text-sm font-bold text-black whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Vote Rematch (Yes)
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={onPlayAgain}
-            className="neo-btn inline-flex items-center justify-center gap-2 bg-[#ffe17c] px-5 py-2.5 text-sm font-bold text-black whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Play Again
-          </button>
-          <button
-            type="button"
-            onClick={onBackToHub}
+            onClick={() => {
+              sound.playClick();
+              onBackToHub();
+            }}
             className="neo-btn inline-flex items-center justify-center gap-2 bg-[#171e19] px-5 py-2.5 text-sm font-bold text-white whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Home className="h-4 w-4" />

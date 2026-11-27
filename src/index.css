@@ -35,11 +35,32 @@
   text-wrap: balance;
 }
 
-/* Neo-Brutalist Dot Pattern on Primary Yellow */
+/* Animated Neo-Brutalist Diagonal Dot Pattern on Primary Yellow */
+@keyframes dot-drift-diagonal {
+  0% {
+    transform: translate3d(0px, 0px, 0);
+  }
+  100% {
+    transform: translate3d(32px, 32px, 0);
+  }
+}
+
 .bg-dot-yellow {
+  position: relative;
+  isolation: isolate;
   background-color: #ffe17c;
-  background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1.5px, transparent 1.5px);
+}
+
+.bg-dot-yellow::before {
+  content: "";
+  position: fixed;
+  inset: -64px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.14) 1.85px, transparent 1.85px);
   background-size: 32px 32px;
+  animation: dot-drift-diagonal 4.2s linear infinite;
+  will-change: transform;
 }
 
 /* Outlined Display Keyword */

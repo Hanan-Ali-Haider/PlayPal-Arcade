@@ -5,6 +5,7 @@ import { db, handleFirestoreError, OperationType } from '../../firebase/client';
 import { createRoomRtcChannel, RtcChannelHandle } from '../../firebase/rtcSync';
 import { GameComponentProps } from '../../types/arcade';
 import { sound } from '../../utils/sound';
+import { useDeviceMode } from '../../utils/useDeviceMode';
 
 const W = 1000;
 const H = 520;
@@ -68,6 +69,7 @@ export const HeadballGame: React.FC<GameComponentProps> = ({
   onMatchEnd,
   matchSeed,
 }) => {
+  const device = useDeviceMode();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
   const touchRef = useRef<InputState>({ left: false, right: false, jump: false, kick: false });
@@ -1240,46 +1242,57 @@ export const HeadballGame: React.FC<GameComponentProps> = ({
       </div>
 
       {/* Mobile Touch Controls */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-black bg-[#f4f4f5] p-3 lg:hidden">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            {...touchBtnProps('left')}
-            className="neo-btn flex h-12 w-16 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
-          >
-            LEFT
-          </button>
-          <button
-            type="button"
-            {...touchBtnProps('right')}
-            className="neo-btn flex h-12 w-16 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
-          >
-            RIGHT
-          </button>
-        </div>
+      {(device.isMobile || device.isTouch) && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-black bg-[#f4f4f5] p-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              {...touchBtnProps('left')}
+              className="neo-btn flex h-12 w-16 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              LEFT
+            </button>
+            <button
+              type="button"
+              {...touchBtnProps('right')}
+              className="neo-btn flex h-12 w-16 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              RIGHT
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            {...touchBtnProps('jump')}
-            className="neo-btn flex h-12 w-16 items-center justify-center bg-[#b7c6c2] text-xs font-extrabold text-black touch-none select-none"
-          >
-            JUMP
-          </button>
-          <button
-            type="button"
-            {...touchBtnProps('kick')}
-            className="neo-btn flex h-12 w-16 items-center justify-center bg-black text-xs font-extrabold text-[#ffe17c] touch-none select-none"
-          >
-            KICK
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              {...touchBtnProps('jump')}
+              className="neo-btn flex h-12 w-16 items-center justify-center bg-[#b7c6c2] text-xs font-extrabold text-black touch-none select-none"
+            >
+              JUMP
+            </button>
+            <button
+              type="button"
+              {...touchBtnProps('kick')}
+              className="neo-btn flex h-12 w-16 items-center justify-center bg-black text-xs font-extrabold text-[#ffe17c] touch-none select-none"
+            >
+              KICK
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-black/70">
         <span>
-          Controls: <strong className="font-extrabold text-black">WASD or Arrow Keys</strong> to move &amp; jump ·{' '}
-          <strong className="font-extrabold text-black">Space / Enter</strong> to kick
+          {device.isMobile || device.isTouch ? (
+            <>
+              Touch Controls: <strong className="font-extrabold text-black">LEFT / RIGHT</strong> to run ·{' '}
+              <strong className="font-extrabold text-black">JUMP / KICK</strong>
+            </>
+          ) : (
+            <>
+              Controls: <strong className="font-extrabold text-black">WASD or Arrow Keys</strong> to move &amp; jump ·{' '}
+              <strong className="font-extrabold text-black">Space / Enter</strong> to kick
+            </>
+          )}
         </span>
         <span className="rounded-md border border-black bg-[#b7c6c2] px-2 py-0.5 font-bold text-black">
           {rtcOpen ? 'Connected' : 'Synced'}

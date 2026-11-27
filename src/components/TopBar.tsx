@@ -3,6 +3,7 @@ import { LogIn } from 'lucide-react';
 import { useArcade } from '../state/arcadeStore';
 import { PlayerProfile } from '../types/arcade';
 import { sound } from '../utils/sound';
+import { useDeviceMode } from '../utils/useDeviceMode';
 import { ArcadeLogo } from './ArcadeLogo';
 import { PlayerAvatar } from './PlayerAvatar';
 
@@ -30,6 +31,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     signInWithGoogle,
   } = useArcade();
 
+  const device = useDeviceMode();
   const friendAlertCount = incomingRequests.length + roomInvites.length;
 
   const myProfilePreview: PlayerProfile = useMemo(
@@ -76,10 +78,10 @@ export const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         {/* Desktop Nav (Signed In Only) */}
-        {user && (
+        {user && !device.isMobile && (
           <nav
             aria-label="Primary navigation"
-            className="hidden md:flex items-center gap-6 text-sm font-bold"
+            className="flex items-center gap-6 text-sm font-bold"
           >
             {navItems.map((item) => {
               const isActive = !inGame && activeTab === item.id;
@@ -157,10 +159,10 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Mobile Nav when signed in */}
-      {user && (
+      {user && device.isMobile && (
         <nav
           aria-label="Mobile navigation"
-          className="flex md:hidden items-center justify-between gap-1 overflow-x-auto border-t-2 border-black bg-white px-2 py-1.5 text-[11px] font-bold"
+          className="flex items-center justify-between gap-1 overflow-x-auto border-t-2 border-black bg-white px-2 py-1.5 text-[11px] font-bold"
         >
           {navItems.map((item) => {
             const isActive = !inGame && activeTab === item.id;

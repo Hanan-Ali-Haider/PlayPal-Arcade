@@ -35,6 +35,7 @@ import {
   RoomMatchDoc,
   RoomMessageDoc,
   UserAccountDoc,
+  VoteChoice,
 } from '../types/arcade';
 import { sound } from '../utils/sound';
 
@@ -138,6 +139,9 @@ interface ArcadeContextValue {
   launchRoomGame: (gameId: GameId) => Promise<void>;
   restartRoomGame: () => Promise<void>;
   exitRoomGameToLobby: () => Promise<void>;
+  voteRematch: (choice: 'yes' | 'no') => Promise<void>;
+  voteDraw: (choice: 'yes' | 'no') => Promise<void>;
+  clearDrawVotes: () => Promise<void>;
 
   // Friends
   friends: FriendRelationDoc[];
@@ -205,9 +209,24 @@ function buildLegacyMigrationPatch(normalized: ArcadeRoomDoc): Record<string, un
   };
 }
 
+function normalizeVote(raw: unknown): VoteChoice {
+  return raw === 'yes' ? 'yes' : raw === 'no' ? 'no' : '';
+}
+
 function normalizeRoomDoc(raw: Record<string, unknown>): ArcadeRoomDoc {
   const activeRaw = String(raw.activeGame ?? 'lobby');
-  const validGames: GameId[] = ['chess', 'carrom', 'headball', 'football', 'racing', 'airhockey'];
+  const validGames: GameId[] = [
+    'chess',
+    'carrom',
+    'headball',
+    'football',
+    'racing',
+    'airhockey',
+    'tictactoe',
+    'pool',
+    'connect4',
+    'checkers',
+  ];
   const activeGame = validGames.includes(activeRaw as GameId) ? (activeRaw as GameId) : 'lobby';
 
   return {
@@ -226,6 +245,10 @@ function normalizeRoomDoc(raw: Record<string, unknown>): ArcadeRoomDoc {
     p2Wins: Math.max(0, Number(raw.p2Wins ?? raw.rehanWins ?? 0) || 0),
     draws: Math.max(0, Number(raw.draws ?? 0) || 0),
     status: raw.status === 'playing' ? 'playing' : 'open',
+    rematchP1: normalizeVote(raw.rematchP1),
+    rematchP2: normalizeVote(raw.rematchP2),
+    drawP1: normalizeVote(raw.drawP1),
+    drawP2: normalizeVote(raw.drawP2),
   };
 }
 
@@ -828,6 +851,10 @@ export const ArcadeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       p2Wins: 0,
       draws: 0,
       status: 'open',
+      rematchP1: '',
+      rematchP2: '',
+      drawP1: '',
+      drawP2: '',
     };
 
     try {
@@ -933,6 +960,10 @@ export const ArcadeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (room.guestUid === user.uid) {
         const updates: Record<string, unknown> = {
           guestUid: '',
+          rematchP1: '',
+          rematchP2: '',
+          drawP1: '',
+          drawP2: '',
           updatedAt: serverTimestamp(),
         };
         if (room.p1Uid === user.uid) {
@@ -1052,6 +1083,10 @@ export const ArcadeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           activeGame: gameId,
           status: 'playing',
           matchSeed: room.matchSeed + 1,
+          rematchP1: '',
+          rematchP2: '',
+          drawP1: '',
+          drawP2: '',
           updatedAt: serverTimestamp(),
         });
       } catch (err) {
@@ -1070,6 +1105,10 @@ export const ArcadeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await updateDoc(doc(db, 'rooms', room.roomCode), {
         ...buildLegacyMigrationPatch(room),
         matchSeed: room.matchSeed + 1,
+        rematchP1: '',
+        rematchP2: '',
+        drawP1: '',
+        drawP2: '',
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
@@ -1087,12 +1126,121 @@ export const ArcadeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ...buildLegacyMigrationPatch(room),
         activeGame: 'lobby',
         status: 'open',
+        rematchP1: '',
+        rematchP2: '',
+        drawP1: '',
+        drawP2: '',
         updatedAt: serverTimestamp(),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not return to room.';
       setRoomError(msg);
     }
+  }, [room, user]);
+
+  const voteRematch = useCallback(
+    async (choice: 'yes' | 'no') => {
+      if (!user || !room) return;
+      setRoomError(null);
+      const bothConnected = Boolean(room.p1Uid && room.p2Uid);
+
+      if (!bothConnected) {
+        if (choice === 'yes') {
+          await restartRoomGame();
+        } else {
+          await updateDoc(doc(db, 'rooms', room.roomCode), {
+            rematchP1: '',
+            rematchP2: '',
+            updatedAt: serverTimestamp(),
+          }).catch(() => {});
+        }
+        return;
+      }
+
+      const amP2 = room.p2Uid === user.uid;
+      const myField = amP2 ? 'rematchP2' : 'rematchP1';
+      const otherVotedYes = amP2 ? room.rematchP1 === 'yes' : room.rematchP2 === 'yes';
+
+      try {
+        if (choice === 'no') {
+          sound.playClick();
+          await updateDoc(doc(db, 'rooms', room.roomCode), {
+            rematchP1: '',
+            rematchP2: '',
+            updatedAt: serverTimestamp(),
+          });
+        } else if (otherVotedYes) {
+          // Both players voted Yes — trigger rematch!
+          sound.playPowerUp();
+          await updateDoc(doc(db, 'rooms', room.roomCode), {
+            ...buildLegacyMigrationPatch(room),
+            matchSeed: room.matchSeed + 1,
+            rematchP1: '',
+            rematchP2: '',
+            drawP1: '',
+            drawP2: '',
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          sound.playSwap();
+          await updateDoc(doc(db, 'rooms', room.roomCode), {
+            [myField]: 'yes',
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Could not record rematch vote.';
+        setRoomError(msg);
+      }
+    },
+    [restartRoomGame, room, user]
+  );
+
+  const voteDraw = useCallback(
+    async (choice: 'yes' | 'no') => {
+      if (!user || !room) return;
+      setRoomError(null);
+      const bothConnected = Boolean(room.p1Uid && room.p2Uid);
+      if (!bothConnected) {
+        setRoomError('Both players must be seated to vote on a mutual draw.');
+        return;
+      }
+
+      const amP2 = room.p2Uid === user.uid;
+      const myField = amP2 ? 'drawP2' : 'drawP1';
+
+      try {
+        if (choice === 'no') {
+          sound.playClick();
+          await updateDoc(doc(db, 'rooms', room.roomCode), {
+            drawP1: '',
+            drawP2: '',
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          sound.playSwap();
+          await updateDoc(doc(db, 'rooms', room.roomCode), {
+            [myField]: 'yes',
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Could not record draw vote.';
+        setRoomError(msg);
+      }
+    },
+    [room, user]
+  );
+
+  const clearDrawVotes = useCallback(async () => {
+    if (!user || !room) return;
+    try {
+      await updateDoc(doc(db, 'rooms', room.roomCode), {
+        drawP1: '',
+        drawP2: '',
+        updatedAt: serverTimestamp(),
+      });
+    } catch {}
   }, [room, user]);
 
   // Friend Request Actions
@@ -1364,6 +1512,8 @@ export const ArcadeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           p1Wins: room.p1Wins + (payload.winner === 'p1' ? 1 : 0),
           p2Wins: room.p2Wins + (payload.winner === 'p2' ? 1 : 0),
           draws: room.draws + (payload.winner === 'draw' ? 1 : 0),
+          drawP1: '',
+          drawP2: '',
           updatedAt: serverTimestamp(),
         });
       } catch (err) {
@@ -1450,6 +1600,9 @@ export const ArcadeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     launchRoomGame,
     restartRoomGame,
     exitRoomGameToLobby,
+    voteRematch,
+    voteDraw,
+    clearDrawVotes,
     friends,
     incomingRequests,
     outgoingRequests,

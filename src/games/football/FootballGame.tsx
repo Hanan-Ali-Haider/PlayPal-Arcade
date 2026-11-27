@@ -5,6 +5,7 @@ import { db, handleFirestoreError, OperationType } from '../../firebase/client';
 import { createRoomRtcChannel, RtcChannelHandle } from '../../firebase/rtcSync';
 import { GameComponentProps } from '../../types/arcade';
 import { sound } from '../../utils/sound';
+import { useDeviceMode } from '../../utils/useDeviceMode';
 
 const CW = 1000;
 const CH = 580;
@@ -71,6 +72,7 @@ export const FootballGame: React.FC<GameComponentProps> = ({
   onMatchEnd,
   matchSeed,
 }) => {
+  const device = useDeviceMode();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
   const touchRef = useRef<FootballInput>({
@@ -1096,63 +1098,74 @@ export const FootballGame: React.FC<GameComponentProps> = ({
       </div>
 
       {/* Mobile Touch D-Pad + Actions */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-black bg-[#f4f4f5] p-3 lg:hidden">
-        <div className="grid grid-cols-3 gap-1.5 w-[144px]">
-          <div />
-          <button
-            type="button"
-            {...touchBtnProps('up')}
-            className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
-          >
-            UP
-          </button>
-          <div />
-          <button
-            type="button"
-            {...touchBtnProps('left')}
-            className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
-          >
-            L
-          </button>
-          <button
-            type="button"
-            {...touchBtnProps('down')}
-            className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
-          >
-            DN
-          </button>
-          <button
-            type="button"
-            {...touchBtnProps('right')}
-            className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
-          >
-            R
-          </button>
-        </div>
+      {(device.isMobile || device.isTouch) && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-black bg-[#f4f4f5] p-3">
+          <div className="grid grid-cols-3 gap-1.5 w-[144px]">
+            <div />
+            <button
+              type="button"
+              {...touchBtnProps('up')}
+              className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              UP
+            </button>
+            <div />
+            <button
+              type="button"
+              {...touchBtnProps('left')}
+              className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              L
+            </button>
+            <button
+              type="button"
+              {...touchBtnProps('down')}
+              className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              DN
+            </button>
+            <button
+              type="button"
+              {...touchBtnProps('right')}
+              className="neo-btn flex h-11 items-center justify-center bg-white text-xs font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              R
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            {...touchBtnProps('sprint')}
-            className="neo-btn flex h-12 px-3.5 items-center justify-center bg-[#b7c6c2] text-xs font-extrabold text-black touch-none select-none"
-          >
-            SPRINT
-          </button>
-          <button
-            type="button"
-            {...touchBtnProps('shoot')}
-            className="neo-btn flex h-12 px-4 items-center justify-center bg-black text-xs font-extrabold text-[#ffe17c] touch-none select-none"
-          >
-            SHOOT
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              {...touchBtnProps('sprint')}
+              className="neo-btn flex h-12 px-3.5 items-center justify-center bg-[#b7c6c2] text-xs font-extrabold text-black touch-none select-none"
+            >
+              SPRINT
+            </button>
+            <button
+              type="button"
+              {...touchBtnProps('shoot')}
+              className="neo-btn flex h-12 px-4 items-center justify-center bg-black text-xs font-extrabold text-[#ffe17c] touch-none select-none"
+            >
+              SHOOT
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-black/70">
         <span>
-          Controls: <strong className="font-extrabold text-black">WASD or Arrow Keys</strong> to run ·{' '}
-          <strong className="font-extrabold text-black">Space / Enter / F</strong> to shoot ·{' '}
-          <strong className="font-extrabold text-black">Shift</strong> to sprint
+          {device.isMobile || device.isTouch ? (
+            <>
+              Touch Controls: <strong className="font-extrabold text-black">D-Pad</strong> to dribble ·{' '}
+              <strong className="font-extrabold text-black">SPRINT &amp; SHOOT</strong>
+            </>
+          ) : (
+            <>
+              Controls: <strong className="font-extrabold text-black">WASD or Arrow Keys</strong> to run ·{' '}
+              <strong className="font-extrabold text-black">Space / Enter / F</strong> to shoot ·{' '}
+              <strong className="font-extrabold text-black">Shift</strong> to sprint
+            </>
+          )}
         </span>
         <span className="rounded-md border border-black bg-[#b7c6c2] px-2 py-0.5 font-bold text-black">
           {rtcOpen ? 'Connected' : 'Synced'}

@@ -6,6 +6,10 @@ import { HeadballGame } from './headball/HeadballGame';
 import { FootballGame } from './football/FootballGame';
 import { RacingGame } from './racing/RacingGame';
 import { AirHockeyGame } from './airhockey/AirHockeyGame';
+import { TicTacToeGame } from './tictactoe/TicTacToeGame';
+import { PoolGame } from './pool/PoolGame';
+import { Connect4Game } from './connect4/Connect4Game';
+import { CheckersGame } from './checkers/CheckersGame';
 
 export interface RegisteredGame {
   meta: GameMeta;
@@ -13,6 +17,96 @@ export interface RegisteredGame {
 }
 
 export const GAME_REGISTRY: RegisteredGame[] = [
+  {
+    meta: {
+      id: 'pool',
+      name: '8-Ball Pool',
+      subtitle: 'Classic 16-ball billiards table with ghost-ball aiming, solids vs stripes, and bank shots.',
+      genre: 'Billiards',
+      playStyle: 'Online Turn-Based',
+      durationHint: '5–10 min',
+      controlsSummary: {
+        p1Label: 'Shooter 1',
+        p1Controls: [
+          'Tap/Drag anywhere on the felt to aim the cue stick.',
+          'Pull & release the Power Slider (or drag back from the cue ball on PC) to shoot.',
+        ],
+        p2Label: 'Shooter 2',
+        p2Controls: [
+          'Tap/Drag anywhere on the felt to aim the cue stick.',
+          'On Ball-in-Hand fouls, drag the cue ball anywhere on the felt before aiming.',
+        ],
+        rules: [
+          'First legal pocketed object ball assigns Solids (1–7) vs Stripes (9–15).',
+          'Pocket your own group to keep shooting; clear all 7 then sink the 8-ball cleanly to win!',
+        ],
+      },
+    },
+    Component: PoolGame,
+  },
+  {
+    meta: {
+      id: 'tictactoe',
+      name: 'Tic Tac Toe',
+      subtitle: 'Crisp Best-of-3 X & O series with alternating openers and instant round resets.',
+      genre: 'Quick Classic',
+      playStyle: 'Online Turn-Based',
+      durationHint: '1–2 min',
+      controlsSummary: {
+        p1Label: 'Player X',
+        p1Controls: ['Click or tap any empty cell on your turn to place X.'],
+        p2Label: 'Player O',
+        p2Controls: ['Click or tap any empty cell on your turn to place O.'],
+        rules: [
+          'Connect 3 marks horizontally, vertically, or diagonally to win a round.',
+          'First player to win 2 rounds claims the match victory!',
+        ],
+      },
+    },
+    Component: TicTacToeGame,
+  },
+  {
+    meta: {
+      id: 'connect4',
+      name: 'Connect 4',
+      subtitle: '7×6 vertical disc drop duel. Line up 4 discs in a row before your friend blocks you.',
+      genre: 'Board Strategy',
+      playStyle: 'Online Turn-Based',
+      durationHint: '2–4 min',
+      controlsSummary: {
+        p1Label: 'Yellow Discs',
+        p1Controls: ['Click or tap any column (or top ▼ button) to drop a yellow disc.'],
+        p2Label: 'Sage Discs',
+        p2Controls: ['Click or tap any column (or top ▼ button) to drop a sage disc.'],
+        rules: [
+          'Discs fall to the lowest open slot in their column.',
+          'Connect 4 discs horizontally, vertically, or diagonally to win.',
+        ],
+      },
+    },
+    Component: Connect4Game,
+  },
+  {
+    meta: {
+      id: 'checkers',
+      name: 'Checkers',
+      subtitle: '8×8 Draughts with mandatory captures, chained multi-jumps, and King crowns.',
+      genre: 'Board Strategy',
+      playStyle: 'Online Turn-Based',
+      durationHint: '5–12 min',
+      controlsSummary: {
+        p1Label: 'Yellow Checkers',
+        p1Controls: ['Tap a checker then tap a highlighted diagonal target square.'],
+        p2Label: 'Sage Checkers',
+        p2Controls: ['Board flips automatically for Side 2. Tap a checker to move or jump.'],
+        rules: [
+          'Captures are mandatory when available; multi-jumps chain automatically.',
+          'Reach the opposite back row to crown a King that moves and jumps in any diagonal direction.',
+        ],
+      },
+    },
+    Component: CheckersGame,
+  },
   {
     meta: {
       id: 'racing',
@@ -46,7 +140,7 @@ export const GAME_REGISTRY: RegisteredGame[] = [
     meta: {
       id: 'airhockey',
       name: 'Smash Air Hockey',
-      subtitle: 'Lightning-fast neon air hockey table. Drag or smash your way to 7 goals.',
+      subtitle: 'Fast-paced table arcade duel. Drag or smash the puck to 7 goals.',
       genre: 'Table Arcade',
       playStyle: 'Live Online',
       durationHint: '1–2 min',
@@ -174,7 +268,7 @@ export const GAME_REGISTRY: RegisteredGame[] = [
         ],
         rules: [
           'Standard FIDE rules: castling, en passant, pawn promotion, checkmate, and stalemate.',
-          '50-move rule and insufficient material draws are detected automatically.',
+          '50-move rule and insufficient material draws (or mutual Draw votes) are supported.',
         ],
       },
     },

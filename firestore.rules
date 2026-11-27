@@ -43,6 +43,10 @@ service cloud.firestore {
       return url is string && url.size() <= 65000;
     }
 
+    function isValidVoteChoice(v) {
+      return v in ['', 'yes', 'no'];
+    }
+
     function isValidUserProfile(data) {
       return data.keys().hasAll([
           'uid', 'displayName', 'accentColor', 'emblem', 'winTaunt', 'createdAt', 'updatedAt'
@@ -111,7 +115,9 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'roomCode', 'hostUid', 'guestUid', 'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo',
-          'activeGame', 'matchSeed', 'p1Wins', 'p2Wins', 'draws', 'status', 'createdAt', 'updatedAt'
+          'activeGame', 'matchSeed', 'p1Wins', 'p2Wins', 'draws', 'status',
+          'rematchP1', 'rematchP2', 'drawP1', 'drawP2',
+          'createdAt', 'updatedAt'
         ])
         && isValidRoomCode(data.roomCode)
         && isValidId(data.hostUid)
@@ -122,12 +128,16 @@ service cloud.firestore {
         && data.p2Uid is string && data.p2Uid.size() <= 128
         && data.p2Name is string && data.p2Name.size() <= 60
         && (!('p2Photo' in data) || isValidPhotoUrl(data.p2Photo))
-        && data.activeGame in ['lobby', 'chess', 'carrom', 'headball', 'football', 'racing', 'airhockey']
+        && data.activeGame in ['lobby', 'chess', 'carrom', 'headball', 'football', 'racing', 'airhockey', 'tictactoe', 'pool', 'connect4', 'checkers']
         && data.matchSeed is int && data.matchSeed >= 1
         && data.p1Wins is int && data.p1Wins >= 0
         && data.p2Wins is int && data.p2Wins >= 0
         && data.draws is int && data.draws >= 0
         && data.status in ['open', 'playing']
+        && (!('rematchP1' in data) || isValidVoteChoice(data.rematchP1))
+        && (!('rematchP2' in data) || isValidVoteChoice(data.rematchP2))
+        && (!('drawP1' in data) || isValidVoteChoice(data.drawP1))
+        && (!('drawP2' in data) || isValidVoteChoice(data.drawP2))
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -174,7 +184,7 @@ service cloud.firestore {
           'id', 'gameId', 'gameName', 'winner', 'scoreLabel', 'summary', 'durationSeconds', 'recordedByUid', 'createdAt'
         ])
         && isValidId(data.id)
-        && data.gameId in ['chess', 'carrom', 'headball', 'football', 'racing', 'airhockey']
+        && data.gameId in ['chess', 'carrom', 'headball', 'football', 'racing', 'airhockey', 'tictactoe', 'pool', 'connect4', 'checkers']
         && data.gameName is string && data.gameName.size() >= 1 && data.gameName.size() <= 40
         && data.winner in ['p1', 'p2', 'draw']
         && data.scoreLabel is string && data.scoreLabel.size() >= 1 && data.scoreLabel.size() <= 80
@@ -325,13 +335,14 @@ service cloud.firestore {
               'hananUid', 'hananName', 'rehanUid', 'rehanName', 'hananWins', 'rehanWins'
             ])
           )
-          // Action 2: Room member updates sides, active game, or room scoreboard (also permits legacy field cleanup)
+          // Action 2: Room member updates sides, active game, mutual votes, or room scoreboard (also permits legacy field cleanup)
           || (
             isRoomMemberData(existing())
             && incoming().guestUid == existing().guestUid
             && incoming().diff(existing()).affectedKeys().hasOnly([
               'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo',
-              'activeGame', 'matchSeed', 'p1Wins', 'p2Wins', 'draws', 'status', 'updatedAt',
+              'activeGame', 'matchSeed', 'p1Wins', 'p2Wins', 'draws', 'status',
+              'rematchP1', 'rematchP2', 'drawP1', 'drawP2', 'updatedAt',
               'hananUid', 'hananName', 'rehanUid', 'rehanName', 'hananWins', 'rehanWins'
             ])
           )
@@ -340,7 +351,8 @@ service cloud.firestore {
             existing().guestUid == request.auth.uid
             && incoming().guestUid == ''
             && incoming().diff(existing()).affectedKeys().hasOnly([
-              'guestUid', 'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo', 'updatedAt'
+              'guestUid', 'p1Uid', 'p1Name', 'p1Photo', 'p2Uid', 'p2Name', 'p2Photo',
+              'rematchP1', 'rematchP2', 'drawP1', 'drawP2', 'updatedAt'
             ])
           )
         );

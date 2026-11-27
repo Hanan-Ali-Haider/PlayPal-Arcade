@@ -203,12 +203,19 @@ export const RoomChat: React.FC<{ compact?: boolean }> = ({ compact = false }) =
   const recordStartRef = useRef<number>(0);
   const shouldSendOnStopRef = useRef<boolean>(false);
 
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const feedRef = useRef<HTMLDivElement | null>(null);
+  const isFirstScrollRef = useRef(true);
   const lastProcessedIdRef = useRef<string | null>(null);
   const hydratedRef = useRef(false);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const feedEl = feedRef.current;
+    if (!feedEl) return;
+    feedEl.scrollTo({
+      top: feedEl.scrollHeight,
+      behavior: isFirstScrollRef.current ? 'auto' : 'smooth',
+    });
+    isFirstScrollRef.current = false;
   }, [messages.length]);
 
   useEffect(() => {
@@ -276,7 +283,7 @@ export const RoomChat: React.FC<{ compact?: boolean }> = ({ compact = false }) =
     setPickerOpen(false);
     setVoiceError(null);
     if (!isSingleEmoji(clean)) {
-      sound.playClick();
+      sound.playPop();
     }
     try {
       await sendChatMessage(clean);
@@ -405,7 +412,7 @@ export const RoomChat: React.FC<{ compact?: boolean }> = ({ compact = false }) =
       </div>
 
       {/* Chat Messages Feed */}
-      <div className="relative flex-1 overflow-y-auto p-3.5 space-y-3 bg-white">
+      <div ref={feedRef} className="relative flex-1 overflow-y-auto p-3.5 space-y-3 bg-white">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center px-4">
             <p className="text-xs font-medium text-black/55">
@@ -498,8 +505,6 @@ export const RoomChat: React.FC<{ compact?: boolean }> = ({ compact = false }) =
             ))}
           </AnimatePresence>
         </div>
-
-        <div ref={bottomRef} />
       </div>
 
       {/* Footer Quick Chats, Goofy Emoji Picker, Voice Recorder & Input */}

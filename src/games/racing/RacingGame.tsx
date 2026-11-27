@@ -5,6 +5,7 @@ import { db, handleFirestoreError, OperationType } from '../../firebase/client';
 import { createRoomRtcChannel, RtcChannelHandle } from '../../firebase/rtcSync';
 import { GameComponentProps } from '../../types/arcade';
 import { sound } from '../../utils/sound';
+import { useDeviceMode } from '../../utils/useDeviceMode';
 
 const CW = 1000;
 const CH = 560;
@@ -149,6 +150,7 @@ export const RacingGame: React.FC<GameComponentProps> = ({
   onMatchEnd,
   matchSeed,
 }) => {
+  const device = useDeviceMode();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
   const touchRef = useRef<DashInput>({
@@ -917,7 +919,7 @@ export const RacingGame: React.FC<GameComponentProps> = ({
               ht: Number(c2.hitTimer.toFixed(2)),
             },
             stars: Array.from(collectedStars),
-            winner,
+            winner: winner ?? '',
           };
 
           if (rtcRef.current?.isOpen()) {
@@ -1062,67 +1064,84 @@ export const RacingGame: React.FC<GameComponentProps> = ({
         )}
       </div>
 
-      {/* Mobile & Touch Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2 sm:hidden">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onPointerDown={() => setTouch('left', true)}
-            onPointerUp={() => setTouch('left', false)}
-            onPointerLeave={() => setTouch('left', false)}
-            onPointerCancel={() => setTouch('left', false)}
-            className="neo-btn bg-white px-5 py-3.5 text-sm font-extrabold text-black select-none"
-          >
-            Left
-          </button>
-          <button
-            type="button"
-            onPointerDown={() => setTouch('right', true)}
-            onPointerUp={() => setTouch('right', false)}
-            onPointerLeave={() => setTouch('right', false)}
-            onPointerCancel={() => setTouch('right', false)}
-            className="neo-btn bg-white px-5 py-3.5 text-sm font-extrabold text-black select-none"
-          >
-            Right
-          </button>
+      {/* Mobile & Touch Controls (automatically detected) */}
+      {(device.isMobile || device.isTouch) ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-black bg-[#f4f4f5] p-2.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setTouch('left', true);
+              }}
+              onPointerUp={() => setTouch('left', false)}
+              onPointerCancel={() => setTouch('left', false)}
+              className="neo-btn bg-white px-5 py-3.5 text-sm font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              Left
+            </button>
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setTouch('right', true);
+              }}
+              onPointerUp={() => setTouch('right', false)}
+              onPointerCancel={() => setTouch('right', false)}
+              className="neo-btn bg-white px-5 py-3.5 text-sm font-extrabold text-black touch-none select-none active:bg-[#ffe17c]"
+            >
+              Right
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setTouch('down', true);
+              }}
+              onPointerUp={() => setTouch('down', false)}
+              onPointerCancel={() => setTouch('down', false)}
+              className="neo-btn bg-[#b7c6c2] px-3.5 py-3.5 text-xs font-extrabold text-black touch-none select-none"
+            >
+              Brake
+            </button>
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setTouch('boost', true);
+              }}
+              onPointerUp={() => setTouch('boost', false)}
+              onPointerCancel={() => setTouch('boost', false)}
+              className="neo-btn bg-black px-4 py-3.5 text-xs font-extrabold text-[#ffe17c] touch-none select-none"
+            >
+              Turbo
+            </button>
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setTouch('up', true);
+              }}
+              onPointerUp={() => setTouch('up', false)}
+              onPointerCancel={() => setTouch('up', false)}
+              className="neo-btn bg-[#ffe17c] px-5 py-3.5 text-sm font-extrabold text-black touch-none select-none"
+            >
+              Gas
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onPointerDown={() => setTouch('down', true)}
-            onPointerUp={() => setTouch('down', false)}
-            onPointerLeave={() => setTouch('down', false)}
-            onPointerCancel={() => setTouch('down', false)}
-            className="neo-btn bg-[#b7c6c2] px-3.5 py-3.5 text-xs font-extrabold text-black select-none"
-          >
-            Brake
-          </button>
-          <button
-            type="button"
-            onPointerDown={() => setTouch('boost', true)}
-            onPointerUp={() => setTouch('boost', false)}
-            onPointerLeave={() => setTouch('boost', false)}
-            onPointerCancel={() => setTouch('boost', false)}
-            className="neo-btn bg-black px-4 py-3.5 text-xs font-extrabold text-[#ffe17c] select-none"
-          >
-            Turbo
-          </button>
-          <button
-            type="button"
-            onPointerDown={() => setTouch('up', true)}
-            onPointerUp={() => setTouch('up', false)}
-            onPointerLeave={() => setTouch('up', false)}
-            onPointerCancel={() => setTouch('up', false)}
-            className="neo-btn bg-[#ffe17c] px-5 py-3.5 text-sm font-extrabold text-black select-none"
-          >
-            Gas
-          </button>
-        </div>
-      </div>
-
-      <p className="hidden sm:block text-center text-xs font-medium text-black/65">
-        Steer: A / D or Left / Right · Gas / Brake: W / S or Up / Down · Turbo Boost: Space or Shift
-      </p>
+      ) : (
+        <p className="text-center text-xs font-medium text-black/65">
+          Steer: A / D or Left / Right · Gas / Brake: W / S or Up / Down · Turbo Boost: Space or Shift
+        </p>
+      )}
     </div>
   );
 };

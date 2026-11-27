@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { motion } from 'motion/react';
-import { FlipVertical, Flag, Undo2 } from 'lucide-react';
+import { FlipVertical, Flag, Handshake, Undo2 } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../../firebase/client';
+import { useArcade } from '../../state/arcadeStore';
 import { GameComponentProps } from '../../types/arcade';
 import { sound } from '../../utils/sound';
+import { useDeviceMode } from '../../utils/useDeviceMode';
 import { ChessPieceSvg } from './ChessPieces';
 import {
   ChessState,
@@ -37,6 +39,8 @@ export const ChessGame: React.FC<GameComponentProps> = ({
   onMatchEnd,
   matchSeed,
 }) => {
+  const { voteDraw } = useArcade();
+  const device = useDeviceMode();
   const [moves, setMoves] = useState<SerializedChessMove[]>([]);
   const [resignedBy, setResignedBy] = useState<'p1' | 'p2' | null>(null);
   const [selected, setSelected] = useState<SquareCoord | null>(null);
@@ -495,15 +499,32 @@ export const ChessGame: React.FC<GameComponentProps> = ({
           </button>
         </div>
 
-        {online.mySide && (
-          <button
-            type="button"
-            onClick={handleResign}
-            className="neo-btn inline-flex items-center justify-center gap-1.5 bg-[#ffe17c] px-3 py-2 text-xs font-bold text-black cursor-pointer"
-          >
-            <Flag className="h-3.5 w-3.5" />
-            Resign Match
-          </button>
+        <div className="grid grid-cols-2 gap-2.5">
+          {online.opponentJoined && (
+            <button
+              type="button"
+              onClick={() => voteDraw('yes')}
+              className="neo-btn inline-flex items-center justify-center gap-1.5 bg-[#b7c6c2] px-3 py-2 text-xs font-bold text-black cursor-pointer"
+            >
+              <Handshake className="h-3.5 w-3.5" />
+              Offer Draw
+            </button>
+          )}
+          {online.mySide && (
+            <button
+              type="button"
+              onClick={handleResign}
+              className="neo-btn inline-flex items-center justify-center gap-1.5 bg-[#ffe17c] px-3 py-2 text-xs font-bold text-black cursor-pointer"
+            >
+              <Flag className="h-3.5 w-3.5" />
+              Resign Match
+            </button>
+          )}
+        </div>
+        {device.isMobile && (
+          <p className="text-[11px] font-medium text-black/65">
+            Tap any piece to view legal dots, then tap a dot to move.
+          </p>
         )}
 
         <div className="flex flex-col border-t-2 border-black pt-4">
